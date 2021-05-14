@@ -128,7 +128,7 @@ public:
     }
 
     bool decode_header() {
-        //body_length_ = std::atoi(header);
+        body_length_ = std::atoi((const char*)header);
         std::cout << "size " << body_length_ << std::endl;
         set_size(body_length_);
         std::memcpy(data_, header, HEADER_LENGTH);

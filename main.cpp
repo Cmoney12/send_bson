@@ -147,8 +147,8 @@ int main(int argc, char* argv[])
             std::memcpy(message->body(), message->bson, message->body_length_);
             message->encode_header();
 
-
             c.write(message);
+            
         }
 
         c.close();
