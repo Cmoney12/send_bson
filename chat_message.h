@@ -14,6 +14,10 @@
 class chat_message {
 public:
 
+    chat_message():body_length_(0)
+    {
+    }
+
     ~chat_message() {
         delete[] file_buffer;
         delete[] cc_buff;
@@ -36,10 +40,10 @@ public:
         return HEADER_LENGTH + body_length_;
     }
 
-    //char* body() const
-    //{
-    //    return data_ + HEADER_LENGTH;
-    //}
+    uint8_t* body() const
+    {
+        return data_ + HEADER_LENGTH;
+    }
 
     uint8_t* body()
     {
@@ -129,7 +133,6 @@ public:
 
     bool decode_header() {
         body_length_ = std::atoi((const char*)header);
-        std::cout << "size " << body_length_ << std::endl;
         set_size(body_length_);
         std::memcpy(data_, header, HEADER_LENGTH);
         if(body_length_ > MAX_MESSAGE_SIZE) {
@@ -139,36 +142,37 @@ public:
         return true;
     }
 
-    void parse_bson(const uint8_t *data, std::size_t size) {
+    static void parse_bson(const uint8_t *data, std::size_t size) {
 
         const bson_t *received;
         bson_reader_t *reader;
         bson_iter_t iter;
-        size_t size1 = 0;
 
         reader = bson_reader_new_from_data(data, size);
 
         received = bson_reader_read(reader, nullptr);
 
-        if (bson_iter_init_find(&iter, received, "Receiver") && BSON_ITER_HOLDS_UTF8(&iter)) {
-            printf ("baz = %s\n", bson_iter_utf8(&iter, nullptr));
+        if (received) {
+
+            if (bson_iter_init_find(&iter, received, "Receiver") && BSON_ITER_HOLDS_UTF8(&iter)) {
+                printf("Receiver = %s\n", bson_iter_utf8(&iter, nullptr));
+            }
+
+            if(bson_iter_init_find(&iter, received, "Data") && BSON_ITER_HOLDS_UTF8(&iter))
+                printf("Data = %s\n", bson_iter_utf8(&iter, nullptr));
+
+            bson_reader_destroy(reader);
         }
-
-        bson_reader_destroy(reader);
-
     }
 
     bool encode_header() const {
-        std::cout << "Body Length " << body_length_ << std::endl;
         if (body_length_ <= MAX_MESSAGE_SIZE && body_length_) {
 
             uint8_t header_size[HEADER_LENGTH + 1] = "";
             std::sprintf((char*)header_size, "%4d", static_cast<int>(body_length_));
             std::memcpy((char*)data_, header_size, HEADER_LENGTH);
             return true;
-
         }
-
         return false;
     }
 

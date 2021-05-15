@@ -3,11 +3,20 @@
 #include <iostream>
 #include <thread>
 #include <boost/asio.hpp>
+#include <chrono>
 #include "chat_message.h"
 
 using boost::asio::ip::tcp;
 
 typedef std::deque<chat_message *> chat_message_queue;
+
+std::chrono::time_point<std::chrono::high_resolution_clock> start;
+
+void time_it() {
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << duration.count() << std::endl;
+}
 
 class chat_client
 {
@@ -75,9 +84,8 @@ private:
                                 {
                                     if (!ec)
                                     {
-                                        //std::cout.write(read_msg_.body(), read_msg_.body_length());
-                                        std::cout << "\n";
-                                        read_msg_.parse_bson(read_msg_.body(), read_msg_.body_length_);
+                                        time_it();
+                                        chat_message::parse_bson(read_msg_.body(), read_msg_.body_length_);
                                         do_read_header();
                                     }
                                     else
@@ -96,9 +104,7 @@ private:
                                  {
                                      if (!ec)
                                      {
-                                         std::string s(write_msgs_.front()->data(), write_msgs_.front()->data()+write_msgs_.front()->length());
 
-                                         std::cout << s << std::endl;
                                          write_msgs_.pop_front();
                                          delete write_msgs_.front();
                                          if (!write_msgs_.empty())
@@ -142,13 +148,15 @@ int main(int argc, char* argv[])
         while (std::cin.getline(line, chat_message::MAX_MESSAGE_SIZE + 1))
         {
             chat_message *message = new chat_message;
-            message->create_bson("user","user", "text", line);
+            char user[] = "user";
+            char type[] = "text";
+            message->create_bson(user, user, type, line);
             message->set_size(message->body_length_);
             std::memcpy(message->body(), message->bson, message->body_length_);
             message->encode_header();
 
             c.write(message);
-            
+
         }
 
         c.close();
@@ -158,6 +166,5 @@ int main(int argc, char* argv[])
     {
         std::cerr << "Exception: " << e.what() << "\n";
     }
-
     return 0;
 }
